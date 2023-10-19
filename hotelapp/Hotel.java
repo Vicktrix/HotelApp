@@ -1,5 +1,6 @@
 package com.hotelapp;
 
+import com.hotelapp.implRoom.Room;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -9,6 +10,9 @@ import java.util.function.IntUnaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import static com.hotelapp.TypeOfVacation.*;
+import com.hotelapp.implRoom.RoomChanger;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  @author vitck
@@ -21,7 +25,24 @@ public class Hotel{
     private static final Supplier<Integer> randRooms = () -> ThreadLocalRandom.current().nextInt(0,120);
     private static final List<Guest> guests = new GenerateListOfGuest().get;
     
-    private static List<Room> generateRooms(int max) {
+    // rooms in Hotel
+    private static List<RoomChanger> rooms = generateRooms(120);
+    
+    public static List<Room> getRooms() {
+        return rooms.stream().map(r -> ((Room)r)).toList();
+    }
+    private static void setCostAllRooms(int oneBed, int twoBeds, int threeBeds, int fourBeds) {
+        Consumer<RoomChanger> c = r -> { switch(r.beds()) {
+                case 1 -> r.setCost(oneBed);
+                case 2 -> r.setCost(twoBeds);
+                case 3 -> r.setCost(threeBeds);
+                default -> r.setCost(fourBeds);};};
+        rooms.forEach(c);
+    }
+    public static Function<Integer, Consumer<Room>> changeCostOfTargetedRoom =
+        i -> r -> rooms.get(r.number()-1).setCost(i);
+    
+    private static List<RoomChanger> generateRooms(int max) {
         IntUnaryOperator beds = i -> i%4+1;
         IntPredicate balcony = i -> i>30&&i%5!=0;
         IntPredicate viewOfSee = i -> i%3!=2;
@@ -29,12 +50,12 @@ public class Hotel{
         Function<Integer, Integer> cost = i -> beds.applyAsInt(i)*200 + (balcony.test(i)? 100 : 0) 
                 + (viewOfSee.test(i)? 50 : 0) + vipRooms.applyAsInt(i);
         return IntStream.rangeClosed(1,max).mapToObj(i -> 
-                new Room(i,beds.applyAsInt(i),balcony.test(i),viewOfSee.test(i), cost.apply(i))).toList();
+                new RoomChanger(i,beds.applyAsInt(i),balcony.test(i),viewOfSee.test(i), cost.apply(i))).toList();
     }
 
 
 public static void main(String[] args){
-    BookingManager reception = new BookingManager(generateRooms(120));
+    BookingManager reception = new BookingManager(getRooms());
     
         //        TEST 1 : FILTER ROOMS 
 //        System.out.println("\n__________byTwoBeds().byCostsLessThan(600).limit(30).sortByDecreaseCost()___________________\n");
@@ -111,30 +132,15 @@ public static void main(String[] args){
 //        testRecreationalFilter(reception);
 //        reception.printAllBooking();
 
-        // TEST 4 : COMBINE ROOM-FILTERS AND RESERVATION BY DATE
-        testCrateReservation(reception,50);
-//        reception.printAllBooking();
-        System.out.println("--------------1--------------");
-        reception.rooms().getOrderedRoomInDate(now.plusDays(5),now.plusDays(35),reception.isOrderedRoomInDate)
-                .byCostsBetweenBed(400,1800)
-                .byBedsMoreThan(1)
-                .withViewOfSee(true)
-                .flatMap(reception::getBooksWithRoom)
-                .forEach(System.out::println);
-        System.out.println("--------------2--------------");
-        reception.rooms().getOrderedRoomAtNearYear(reception.isOrderedRoomInDate)
-                .byThreeBed()
-                .withBalcony(false)
-                .sortByDecreaseCost()
-                .flatMap(reception::getBooksWithRoom)
-                .forEach(System.out::println);
-        System.out.println("--------------3--------------");
-        reception.rooms().getOrderedRoomInDate(now.minusDays(2), now.plusWeeks(5), reception.isOrderedRoomInDate)
-                .getHostedForRecreationalRoom(reception.isOrderedRoomForRecreational)
-                .flatMap(reception::getBooksWithRoom)
-                .filter(b -> b.guest().getName().equals("Daniel") || b.order().getRoom().cost()>500)
-                .forEach(System.out::println);
-                
+        //      TEST 4 : COMBINE ROOM-FILTERS AND RESERVATION BY DATE
+        
+//        testCombineRoomFilterAndReservation(reception);
+        
+        //      TEST 5 : Hotel generate new room with new cost, beds, and count of rooms..
+        //      in chaining style change old rooms to another
+        //      TEST 5 is`n done
+        testHotelRoomChanges(reception);
+        
 }
     public static void testOneGuestManyRoomsDifferendDays(BookingManager reception){
         final Guest guest=guests.get(randGuest.get());
@@ -266,6 +272,71 @@ public static void main(String[] args){
             room = reception.rooms().getRoomByNum(i).get();
             order = new Order(room,now.plusDays(i), now.plusDays(i*2+3), type);
             reception.addToBook(order,guests.get(randGuest.get()));
+        }
+    }
+    public static void testCombineRoomFilterAndReservation(BookingManager reception) {
+        reception.clearBooking();
+        testCrateReservation(reception,50);
+        System.out.println("--------------1--------------");
+        reception.rooms().getOrderedRoomInDate(now.plusDays(5),now.plusDays(35),reception.isOrderedRoomInDate)
+                .byCostsBetweenBed(400,1800)
+                .byBedsMoreThan(1)
+                .withViewOfSee(true)
+                .flatMap(reception::getBooksWithRoom)
+                .forEach(System.out::println);
+        System.out.println("--------------2--------------");
+        reception.rooms().getOrderedRoomAtNearYear(reception.isOrderedRoomInDate)
+                .byThreeBed()
+                .withBalcony(false)
+                .sortByDecreaseCost()
+                .flatMap(reception::getBooksWithRoom)
+                .forEach(System.out::println);
+        System.out.println("--------------3--------------");
+        reception.rooms().getOrderedRoomInDate(now.minusDays(2), now.plusWeeks(5), reception.isOrderedRoomInDate)
+                .getHostedForRecreationalRoom(reception.isOrderedRoomForRecreational)
+                .flatMap(reception::getBooksWithRoom)
+                .filter(b -> b.guest().getName().equals("Daniel") || b.order().getRoom().cost()>500)
+                .forEach(System.out::println);
+        reception.clearBooking();
+    }
+    public static void testHotelRoomChanges(BookingManager reception) {
+        System.out.println("\t\t --testHotelRoomChanges--\n\n");
+//        reception.rooms().limit(30).forEach(System.out::println);
+//        System.out.println("\n\t --Change in the cost of all Rooms--\n");
+//        setCostAllRooms(55,122,184,233);
+//        reception.rooms().limit(30).forEach(System.out::println);
+//        System.out.println("\n\t --Change in the cost of individual Rooms--\n");
+        System.out.println("TEST NOT DONE-> ");
+        reception.rooms().limit(15).forEach(System.out::println);
+        System.out.println("TEST NOT DONE-> ");
+        
+        reception.rooms()
+            .limit(20)          // HERE ARE A MISTAKE : limit = 5;
+            .peek(System.out::println)
+            .byBedsLessThan(3) // rewrite cost oneBed room without viewOfSea 
+            .withViewOfSee(false)
+            .peek(changeCostOfTargetedRoom.apply(35))
+            .onClose(() -> { delay(200);
+                    System.out.println("\nrewrite cost oneBed and twoBeds rooms "
+                            + "without balcony and without viewOfSea\n");})
+            .peek(System.out::println)
+            .clearFilter(reception.rooms())
+            // rewrite rewrited Rooms cost oneBed and twoBeds rooms with balcony and with/without viewOfSea
+            .byBedsLessThan(3)
+            .withBalcony(true)
+            .peek(changeCostOfTargetedRoom.apply(46))
+            .onClose(() -> { delay(200);
+                    System.out.println("\nrewrite rewrited Rooms new cost oneBed and twoBeds rooms "
+                            + "with balcony and with/without viewOfSea\n");})
+            .clearFilter(reception.rooms())
+            .byOneBed()
+            // print as result all oneBed room
+            .forEach(System.out::println);
+    }
+    private static void delay(int milSec) {
+        try{ TimeUnit.MILLISECONDS.sleep(milSec);
+        }catch(InterruptedException ex){
+            ex.printStackTrace();
         }
     }
 }

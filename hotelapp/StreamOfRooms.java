@@ -1,5 +1,6 @@
 package com.hotelapp;
 
+import com.hotelapp.implRoom.Room;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -80,6 +81,13 @@ public class StreamOfRooms<T> implements Stream<T> {
     }
     public StreamOfRooms<T> getHostedForWorkingRoom(Predicate<Room> p) {
         return this.filter(r -> p.test((Room)r));
+    }
+    // PROBABLY HERE ARE MISTAKE
+    // why do we use findFirst()? because we need terminal operation and start new Stream
+    // and findFirst() map one to many elements, where flatMap it`s mapping each elment to many (namy-to-many) that not good.
+    public StreamOfRooms<T> clearFilter(StreamOfRooms<T> base) {
+        System.out.println("Inside Clear filter");
+        return new StreamOfRooms<>(this.findFirst().stream().flatMap(i -> base));
     }
     @Override
     public StreamOfRooms<T> filter(Predicate<? super T> predicate){
