@@ -1,5 +1,6 @@
 package com.hotelapp;
 
+import com.hotelapp.implRoom.Room;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +35,10 @@ public class BookingManager{
         return booking.values().stream().map(b -> b.order()).anyMatch(o -> o.equals(order));
     }
     public void addToBookWithMultipleGuestsInRoom(Order order, List<Guest> guests) {
+        if(isOrderAlredyPresentInSystem(order)) {
+            System.out.println("\n "+guests+" yours Order - "+order+"\n is already in the System\n");
+            return;
+        }
         booking.put(order.orderId(),new Book(order, guests.get(0)));
         guests.stream().skip(1).forEach(g -> booking.put(order.getNumberOfOrders(),
                 new Book(order.copyOrderWithIncreaseID(),g)));
@@ -78,6 +83,9 @@ public class BookingManager{
                 b -> b.order().getRoom()==r && b.order().getTypeOfVacation()==WORKING);
     public Stream<Book> getBooksWithRoom(Room room) {
         return booking.values().stream().filter(b -> b.order().getRoom().number()==room.number());
+    }
+    public StreamOfRooms<Room> clearPreviousFilters(Room room) {
+        return rooms();
     }
     public void clearBooking() {
         booking.clear();

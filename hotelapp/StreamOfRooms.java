@@ -1,5 +1,6 @@
 package com.hotelapp;
 
+import com.hotelapp.implRoom.Room;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -81,6 +82,10 @@ public class StreamOfRooms<T> implements Stream<T> {
     public StreamOfRooms<T> getHostedForWorkingRoom(Predicate<Room> p) {
         return this.filter(r -> p.test((Room)r));
     }
+    public StreamOfRooms<T> clearFilter(StreamOfRooms<T> base) {
+        System.out.println("Inside Clear filter");
+        return new StreamOfRooms<>(this.findFirst().stream().flatMap(i -> base));
+    }
     @Override
     public StreamOfRooms<T> filter(Predicate<? super T> predicate){
         return new StreamOfRooms<>(delegate.filter(predicate));
@@ -143,7 +148,9 @@ public class StreamOfRooms<T> implements Stream<T> {
 
     @Override
     public StreamOfRooms<T> peek(Consumer<? super T> action){
-        return new StreamOfRooms<>(delegate.peek(action));
+//        return new StreamOfRooms<>(delegate.peek(action));
+//      peek isn`t terminal operation, and we need to close lazy stream
+        return new StreamOfRooms<>(delegate.peek(action).toList());
     }
 
     @Override
