@@ -82,9 +82,6 @@ public class StreamOfRooms<T> implements Stream<T> {
     public StreamOfRooms<T> getHostedForWorkingRoom(Predicate<Room> p) {
         return this.filter(r -> p.test((Room)r));
     }
-    // PROBABLY HERE ARE MISTAKE
-    // why do we use findFirst()? because we need terminal operation and start new Stream
-    // and findFirst() map one to many elements, where flatMap it`s mapping each elment to many (namy-to-many) that not good.
     public StreamOfRooms<T> clearFilter(StreamOfRooms<T> base) {
         System.out.println("Inside Clear filter");
         return new StreamOfRooms<>(this.findFirst().stream().flatMap(i -> base));
@@ -151,7 +148,9 @@ public class StreamOfRooms<T> implements Stream<T> {
 
     @Override
     public StreamOfRooms<T> peek(Consumer<? super T> action){
-        return new StreamOfRooms<>(delegate.peek(action));
+//        return new StreamOfRooms<>(delegate.peek(action));
+//      peek isn`t terminal operation, and we need to close lazy stream
+        return new StreamOfRooms<>(delegate.peek(action).toList());
     }
 
     @Override

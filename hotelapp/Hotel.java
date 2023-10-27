@@ -136,9 +136,9 @@ public static void main(String[] args){
         
 //        testCombineRoomFilterAndReservation(reception);
         
-        //      TEST 5 : Hotel generate new room with new cost, beds, and count of rooms..
+        //      TEST 5 : Hotel generate new room with new cost
         //      in chaining style change old rooms to another
-        //      TEST 5 is`n done
+        
         testHotelRoomChanges(reception);
         
 }
@@ -301,35 +301,28 @@ public static void main(String[] args){
     }
     public static void testHotelRoomChanges(BookingManager reception) {
         System.out.println("\t\t --testHotelRoomChanges--\n\n");
-//        reception.rooms().limit(30).forEach(System.out::println);
-//        System.out.println("\n\t --Change in the cost of all Rooms--\n");
-//        setCostAllRooms(55,122,184,233);
-//        reception.rooms().limit(30).forEach(System.out::println);
-//        System.out.println("\n\t --Change in the cost of individual Rooms--\n");
-        System.out.println("TEST NOT DONE-> ");
-        reception.rooms().limit(15).forEach(System.out::println);
-        System.out.println("TEST NOT DONE-> ");
-        
+        reception.rooms().limit(30).forEach(System.out::println);
+        System.out.println("\n\t --Change in the cost of all Rooms--\n");
+        setCostAllRooms(55,122,184,233);
+        reception.rooms().limit(30).forEach(System.out::println);
+        System.out.println("\n\t --Change in the cost of individual Rooms--\n");
         reception.rooms()
-            .limit(20)          // HERE ARE A MISTAKE : limit = 5;
+            .limit(20)          
             .peek(System.out::println)
-            .byBedsLessThan(3) // rewrite cost oneBed room without viewOfSea 
+            .byBedsLessThan(3) // rewrite cost byBedsLessThan(3) room without viewOfSea and only first 20 num., set 35
             .withViewOfSee(false)
             .peek(changeCostOfTargetedRoom.apply(35))
-            .onClose(() -> { delay(200);
-                    System.out.println("\nrewrite cost oneBed and twoBeds rooms "
-                            + "without balcony and without viewOfSea\n");})
             .peek(System.out::println)
             .clearFilter(reception.rooms())
-            // rewrite rewrited Rooms cost oneBed and twoBeds rooms with balcony and with/without viewOfSea
+            // rewrite cost All Rooms that`s byBedsLessThan(3) rooms ànd with balcony, set 46 
             .byBedsLessThan(3)
             .withBalcony(true)
             .peek(changeCostOfTargetedRoom.apply(46))
-            .onClose(() -> { delay(200);
-                    System.out.println("\nrewrite rewrited Rooms new cost oneBed and twoBeds rooms "
-                            + "with balcony and with/without viewOfSea\n");})
+            // print first 30 with condition
+            .limit(30).peek(System.out::println)
             .clearFilter(reception.rooms())
             .byOneBed()
+            .sortByDecreaseCost()
             // print as result all oneBed room
             .forEach(System.out::println);
     }
